@@ -18,8 +18,9 @@ class MigrationPluginExtensionTest extends AbstractExtensionTestCase
      */
     public function loadServices()
     {
-        $this->load(['migration' => ['xml_path' => '/mi/mongo/migration/services/version.xml', 'path' => '%app.root_dir%/src/Migration/Version', 'namespace' => 'Mi\Test']]);
+        $this->load(['migration' => ['xml_path' => '/mi/mongo/migration/services/version.xml', 'path' => '%app.root_dir%/src/Migration/Version', 'namespace' => 'Mi\Test', 'migration_collection' => 'service_id']]);
 
+        $this->assertContainerBuilderHasAlias('mi.mongo_db.migration.migration.collection', 'service_id');
         $this->assertContainerBuilderHasParameter('xml_path', '/mi/mongo/migration/services/version.xml');
         $this->assertContainerBuilderHasParameter('migration_path', '%app.root_dir%/src/Migration/Version');
         $this->assertContainerBuilderHasParameter('namespace', 'Mi\Test');

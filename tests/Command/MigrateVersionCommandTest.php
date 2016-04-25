@@ -5,8 +5,8 @@ namespace Mi\MongoDb\Migration\Tests\Command;
 use Mi\MongoDb\Migration\Command\MigrateVersionCommand;
 use Mi\MongoDb\Migration\Version\Version;
 use Mi\MongoDb\Migration\Version\VersionCollection;
-use MongoCollection;
-use MongoCursor;
+use MongoDB\BSON\UTCDatetime;
+use MongoDB\Collection;
 use Prophecy\Argument;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -30,21 +30,15 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
      */
     public function throwExceptionIfMigrateVersionFails()
     {
-
-        $cursor = $this->prophesize(MongoCursor::class);
         $version = $this->prophesize(Version::class);
         
-        $cursor->sort(['createdAt' => -1])->willReturn($cursor->reveal());
-        $cursor->limit(1)->willReturn($cursor->reveal());
-        $cursor->getNext()->willReturn(['to' => 2]);
-
         $this->versionCollection->filteredByVersion(2)->willReturn([3 => $version->reveal()]);
 
         $version->migrate()->shouldBeCalled();
         $version->verifyMigration()->willReturn(false);
         $version->errorMessage()->willReturn('test error');
 
-        $this->migrationCollection->find([], ['to' => true])->willReturn($cursor->reveal());
+        $this->migrationCollection->findOne([], ['projection' => ['to' => 1], 'sort' => ['createdAt' => -1]])->willReturn(['to' => 2]);
 
         self::expectException('\RuntimeException');
         self::expectExceptionMessage('test error');
@@ -57,7 +51,6 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
      */
     public function migrateVersion()
     {
-        $cursor = $this->prophesize(MongoCursor::class);
         $version = $this->prophesize(Version::class);
 
         $cursor->sort(['createdAt' => -1])->willReturn($cursor->reveal());
@@ -74,13 +67,14 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
             \PHPUnit_Framework_TestCase::assertCount(3, $insert);
             \PHPUnit_Framework_TestCase::assertEquals(2, $insert['from']);
             \PHPUnit_Framework_TestCase::assertEquals(3, $insert['to']);
-            \PHPUnit_Framework_TestCase::assertInstanceOf('\MongoDate', $insert['createdAt']);
+            \PHPUnit_Framework_TestCase::assertInstanceOf(UTCDatetime::class, $insert['createdAt']);
 
             return true;
         };
 
-        $this->migrationCollection->insert(Argument::that($insertCheck))->shouldBeCalled();
-        $this->migrationCollection->find([], ['to' => true])->willReturn($cursor->reveal());
+        $this->migrationCollection->insertOne(Argument::that($insertCheck))->shouldBeCalled();
+        $this->migrationCollection->findOne([], ['projection' => ['to' => 1], 'sort' => ['createdAt' => -1]])->willReturn(['to' => 2]);
+
 
         self::assertEquals(0, $this->commandTester->execute([]));
 
@@ -95,13 +89,7 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
      */
     public function tryToMigrateWithInvalidVersion()
     {
-        $cursor = $this->prophesize(MongoCursor::class);
-
-        $cursor->sort(['createdAt' => -1])->willReturn($cursor->reveal());
-        $cursor->limit(1)->willReturn($cursor->reveal());
-        $cursor->getNext()->willReturn(['_id' => 'wrong', 'no_to' => '1']);
-
-        $this->migrationCollection->find([], ['to' => true])->willReturn($cursor->reveal());
+        $this->migrationCollection->findOne([], ['projection' => ['to' => 1], 'sort' => ['createdAt' => -1]])->willReturn(['_id' => 'wrong', 'no_to' => '1']);
 
         self::assertEquals(1, $this->commandTester->execute([]));
 
@@ -118,12 +106,7 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
     public function migrateFirstVersion()
     {
 
-        $cursor = $this->prophesize(MongoCursor::class);
         $version = $this->prophesize(Version::class);
-
-        $cursor->sort(['createdAt' => -1])->willReturn($cursor->reveal());
-        $cursor->limit(1)->willReturn($cursor->reveal());
-        $cursor->getNext()->willReturn(null);
 
         $this->versionCollection->filteredByVersion(0)->willReturn([3 => $version->reveal()]);
 
@@ -135,13 +118,13 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
             \PHPUnit_Framework_TestCase::assertCount(3, $insert);
             \PHPUnit_Framework_TestCase::assertEquals(0, $insert['from']);
             \PHPUnit_Framework_TestCase::assertEquals(3, $insert['to']);
-            \PHPUnit_Framework_TestCase::assertInstanceOf('\MongoDate', $insert['createdAt']);
+            \PHPUnit_Framework_TestCase::assertInstanceOf(UTCDatetime::class, $insert['createdAt']);
 
             return true;
         };
 
-        $this->migrationCollection->insert(Argument::that($insertCheck))->shouldBeCalled();
-        $this->migrationCollection->find([], ['to' => true])->willReturn($cursor->reveal());
+        $this->migrationCollection->insertOne(Argument::that($insertCheck))->shouldBeCalled();
+        $this->migrationCollection->findOne([], ['projection' => ['to' => 1], 'sort' => ['createdAt' => -1]])->willReturn(null);
 
         self::assertEquals(0, $this->commandTester->execute([]));
 
@@ -154,7 +137,7 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->versionCollection = $this->prophesize(VersionCollection::class);
-        $this->migrationCollection = $this->prophesize(MongoCollection::class);
+        $this->migrationCollection = $this->prophesize(Collection::class);
         $this->commandTester = new CommandTester(
             new MigrateVersionCommand($this->versionCollection->reveal(), $this->migrationCollection->reveal())
         );

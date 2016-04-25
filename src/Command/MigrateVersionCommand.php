@@ -3,7 +3,8 @@
 namespace Mi\MongoDb\Migration\Command;
 
 use Mi\MongoDb\Migration\Version\VersionCollection;
-use MongoCollection;
+use MongoDB\BSON\UTCDatetime;
+use MongoDB\Collection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -18,9 +19,9 @@ class MigrateVersionCommand extends Command
 
     /**
      * @param VersionCollection $versionCollection
-     * @param MongoCollection   $migrationsCollection
+     * @param Collection        $migrationsCollection
      */
-    public function __construct(VersionCollection $versionCollection, MongoCollection $migrationsCollection)
+    public function __construct(VersionCollection $versionCollection, Collection $migrationsCollection)
     {
         $this->versionCollection = $versionCollection;
         $this->migrationsCollection = $migrationsCollection;
@@ -43,7 +44,7 @@ class MigrateVersionCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $data = $this->migrationsCollection->find([], ['to' => true])->sort(['createdAt' => -1])->limit(1)->getNext();
+        $data = $this->migrationsCollection->findOne([], ['projection' => ['to' => 1], 'sort' => ['createdAt' => -1]]);
 
         $currentVersion = 0;
 
@@ -64,8 +65,11 @@ class MigrateVersionCommand extends Command
             if (!$migration->verifyMigration()) {
                 throw new \RuntimeException($migration->errorMessage());
             }
-            $versionInfo = ['from' => $currentVersion, 'to' => $version, 'createdAt' => new \MongoDate()];
-            $this->migrationsCollection->insert($versionInfo);
+            $versionInfo = ['from'      => $currentVersion,
+                            'to'        => $version,
+                            'createdAt' => new UTCDatetime(time() * 1000),
+            ];
+            $this->migrationsCollection->insertOne($versionInfo);
 
             $currentVersion = $version;
         }

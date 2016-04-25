@@ -9,6 +9,7 @@
       <argument>%migration_path%</argument>
       <argument type="service" id="filesystem" />
       <argument type="service" id="puli.repository" />
+      <argument>%namespace%</argument>
       <argument>%xml_path%</argument>
       <tag name="console.command" />
     </service>

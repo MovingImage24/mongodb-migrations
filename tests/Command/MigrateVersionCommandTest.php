@@ -53,10 +53,6 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
     {
         $version = $this->prophesize(Version::class);
 
-        $cursor->sort(['createdAt' => -1])->willReturn($cursor->reveal());
-        $cursor->limit(1)->willReturn($cursor->reveal());
-        $cursor->getNext()->willReturn(['to' => 2]);
-
         $this->versionCollection->filteredByVersion(2)->willReturn([3 => $version->reveal()]);
 
         $version->migrate()->shouldBeCalled();

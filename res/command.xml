@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+  <services>
+    <service id="mi.mongo_db.migration.command.generate_version"
+             class="Mi\MongoDb\Migration\Command\GenerateVersionCommand">
+      <argument>%migration_path%</argument>
+      <argument type="service" id="filesystem" />
+      <argument type="service" id="puli.repository" />
+      <argument>%xml_path%</argument>
+      <tag name="console.command" />
+    </service>
+    <service id="mi.mongo_db.migration.command.migrate_version"
+             class="Mi\MongoDb\Migration\Command\MigrateVersionCommand">
+      <argument type="service" id="mi.mongo_db.migration.version.collection" />
+      <argument type="service" id="mi.mongo_db.migration.migration.collection" />
+      <tag name="console.command" />
+    </service>
+  </services>
+</container>

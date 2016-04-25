@@ -1,0 +1,7 @@
+{
+    "version": "1.0",
+    "name": "mi/mongodb-migrations",
+    "path-mappings": {
+        "/mi/mongodb-migrations": "res"
+    }
+}

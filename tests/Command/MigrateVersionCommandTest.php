@@ -42,6 +42,7 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
 
         $version->migrate()->shouldBeCalled();
         $version->verifyMigration()->willReturn(false);
+        $version->rollback()->shouldBeCalled();
         $version->errorMessage()->willReturn('test error');
 
         $this->migrationCollection->find([], ['to' => true])->willReturn($cursor->reveal());
@@ -141,6 +142,7 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
         };
 
         $this->migrationCollection->insert(Argument::that($insertCheck))->shouldBeCalled();
+        $this->migrationCollection->createIndex(['createdAt' => -1])->shouldBeCalled();
         $this->migrationCollection->find([], ['to' => true])->willReturn($cursor->reveal());
 
         self::assertEquals(0, $this->commandTester->execute([]));

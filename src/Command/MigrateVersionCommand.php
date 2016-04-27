@@ -59,9 +59,14 @@ class MigrateVersionCommand extends Command
             $currentVersion = $data['to'];
         }
 
+        if ($currentVersion === 0) {
+            $this->migrationsCollection->createIndex(['createdAt' => -1]);
+        }
+
         foreach ($this->versionCollection->filteredByVersion($currentVersion) as $version => $migration) {
             $migration->migrate();
             if (!$migration->verifyMigration()) {
+                $migration->rollback();
                 throw new \RuntimeException($migration->errorMessage());
             }
             $versionInfo = ['from' => $currentVersion, 'to' => $version, 'createdAt' => new \MongoDate()];

@@ -31,11 +31,12 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
     public function throwExceptionIfMigrateVersionFails()
     {
         $version = $this->prophesize(Version::class);
-        
+
         $this->versionCollection->filteredByVersion(2)->willReturn([3 => $version->reveal()]);
 
         $version->migrate()->shouldBeCalled();
         $version->verifyMigration()->willReturn(false);
+        $version->rollback()->shouldBeCalled();
         $version->errorMessage()->willReturn('test error');
 
         $this->migrationCollection->findOne([], ['projection' => ['to' => 1], 'sort' => ['createdAt' => -1]])->willReturn(['to' => 2]);
@@ -120,6 +121,7 @@ class MigrateVersionCommandTest extends \PHPUnit_Framework_TestCase
         };
 
         $this->migrationCollection->insertOne(Argument::that($insertCheck))->shouldBeCalled();
+        $this->migrationCollection->createIndex(['createdAt' => -1])->shouldBeCalled();
         $this->migrationCollection->findOne([], ['projection' => ['to' => 1], 'sort' => ['createdAt' => -1]])->willReturn(null);
 
         self::assertEquals(0, $this->commandTester->execute([]));
